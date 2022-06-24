@@ -40,11 +40,12 @@ class OlapChannels(GoogleSheet):
         return self.worksheet
 
     def _clear_worksheet(self):
-        print(f'Cleaning {self.sheet_name} sheet in workbook')
+        print(f'Cleaning {self.sheet_name} in workbook')
 
         self.worksheet.clear('A1',None,'*')
 
     def _write_dataframe_to_google_worksheet(self, df):
+        print(f'Writing {self.sheet_name} in workbook')
 
         self.worksheet.set_dataframe(df, (1,1), encoding='utf-8', fit=True)
         self.worksheet.frozen_rows = 1
