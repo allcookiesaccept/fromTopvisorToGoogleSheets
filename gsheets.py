@@ -2,10 +2,14 @@ import pygsheets
 import json
 import pandas as pd
 
-
-class GoogleSheet:
+class GoogleSheetWriter:
 
     def __init__(self, service_file_path, spreadsheet_id, sheet_name):
+        """
+        :param service_file_path: str
+        :param spreadsheet_id: str
+        :param sheet_name: str
+        """
 
         self.service_file_path = service_file_path
         self.spreadsheet_id = spreadsheet_id
@@ -24,8 +28,6 @@ class GoogleSheet:
         return self.spreadsheet
 
 
-class OlapChannels(GoogleSheet):
-
     def _add_worksheet(self):
 
         try:
@@ -42,12 +44,15 @@ class OlapChannels(GoogleSheet):
     def _clear_worksheet(self):
         print(f'Cleaning {self.sheet_name} in workbook')
 
-        self.worksheet.clear('A1',None,'*')
+        self.worksheet.clear('A1', None, '*')
 
     def _write_dataframe_to_google_worksheet(self, df):
+        """
+        :param df: DataFrame
+        """
         print(f'Writing {self.sheet_name} in workbook')
 
-        self.worksheet.set_dataframe(df, (1,1), encoding='utf-8', fit=True)
+        self.worksheet.set_dataframe(df, (1, 1), encoding='utf-8', fit=True)
         self.worksheet.frozen_rows = 1
 
     def run(self, df):
@@ -65,11 +70,6 @@ def main():
     sheet_id = '1UmHsFGC6LiQEeuVCtGZPCB8VzkpVUaAvwQ9D9y5FS-w'
     sheet_name = 'channels'
 
-    olap_sender = OlapChannels(secret_key, sheet_id, sheet_name)
-
-    ex_data = pd.read_excel('olap_channels.xlsx')
-
-    olap_sender.run(ex_data)
 
 if __name__ == '__main__':
     main()
