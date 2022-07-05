@@ -19,7 +19,7 @@ class Topvisor:
         self.server = 'https://api.topvisor.com'
 
         self.work_book_id = '10bQ3R1LvWd3QQW55ALaNOtdxLrZWdrz57Uhrhnu1bRw'
-        self.service_file_path = '../pysheets-347309-9629095400b4.json'
+        self.service_file_path = 'D:\\pyprojects\\datastudio\\topvisor\\pysheets-347309-9629095400b4.json'
 
         self.summary_chart_api_url = '/v2/json/get/positions_2/summary_chart'
         self.keywords_api_url = '/v2/json/get/keywords_2/folders'
@@ -108,7 +108,7 @@ class Topvisor:
 
     def _initialize_folder_frame(self):
         self.folder_frame = {
-            'date': [], 'yandex_iphone_avg': [], 'yandex_iphone_visibility': [],
+            'dates': [], 'yandex_iphone_avg': [], 'yandex_iphone_visibility': [],
             'yandex_ipad_avg': [], 'yandex_ipad_visibility': [], 'yandex_watch_avg': [],
             'yandex_watch_visibility': [],  'yandex_mac_avg': [], 'yandex_mac_visibility': [],
             'google_iphone_avg': [], 'google_iphone_visibility': [],
@@ -126,7 +126,14 @@ class Topvisor:
             for folder in self.folders_dict.keys():
                 for metric in self.metrics:
 
-                    self.folder_frame[self.folders_summary_charts[f'{se}_{folder}_{metric}']] =
+                    self.folder_frame[f'{se}_{folder}_{metric}'] = \
+                        self.folders_summary_charts[f'{se}_{folder}']["result"]["seriesByProjectsId"][self.project_id][metric]
+                    for x, item in enumerate(self.folder_frame[f'{se}_{folder}_{metric}']):
+                        self.folder_frame[f'{se}_{folder}_{metric}'][x] = str(item).replace(".", ",")
+                    self.folder_frame["dates"] = \
+                        self.folders_summary_charts[f'{se}_{folder}']["result"]["dates"]
+
+        return self.folder_frame
 
 
     def get_summary_chart(self):
@@ -259,10 +266,8 @@ class Topvisor:
             for top in self.tops:
                 yandex_value = yandex["result"]["seriesByProjectsId"][str(self.project_id)]["tops"][top][x]
                 self.summary_frame[f'yandex_{top}'].append(yandex_value)
-
                 google_value = google["result"]["seriesByProjectsId"][str(self.project_id)]["tops"][top][x]
                 self.summary_frame[f'google_{top}'].append(google_value)
-
 
         self.table = pd.DataFrame.from_dict(self.summary_frame, orient='index').transpose()
 
@@ -273,12 +278,17 @@ class Topvisor:
 
         self._get_folders_summary_charts()
         self._reformat_response_for_folders_summary_dataframe()
+        df = self._reformat_response_for_folders_summary_dataframe()
+        sheet_name = 'folders_summary_charts'
+
+        sender = GoogleSheetWriter(self.service_file_path, self.work_book_id, sheet_name)
+        sender.run(df)
 
 def main():
 
     tv = Topvisor()
-    # tv.get_summary_chart()
-    tv.push_folders_summary_charts()
+    tv.get_summary_chart()
+    # tv.push_folders_summary_charts()
 
 
 if __name__ == '__main__':
