@@ -66,6 +66,64 @@ class Topvisor:
 
         return self.user, self.key, self.project_id
 
+    def _payload_generator(self, type, search_engine, tag=0, folder=''):
+
+        if type == 'base':
+            self.payload = {
+                "project_id": self.project_id,
+                "region_index": self.se_region_index[search_engine],
+                "date1": self.dates[0],
+                "date2": self.dates[-1],
+                "type_range": 0,
+                "show_visibility": True,
+                "show_avg": True,
+                "show_tops": True
+            }
+        elif type == 'folder':
+            self.payload = {
+                "project_id": self.project_id,
+                "region_index": self.se_region_index[search_engine],
+                "date1": self.dates[0],
+                "date2": self.dates[-1],
+                "type_range": 0,
+                "show_visibility": True,
+                "show_avg": True,
+                "show_tops": True,
+                "filters": [
+                    {
+                        "name": "group_folder_id",
+                        "operator": "EQUALS",
+                        "values": [
+                            str(self.folders_dict[folder])
+                        ]
+                    }
+                ],
+                "group_folder_id_depth": "1"
+            }
+        elif type == 'tag':
+            self.payload = {
+                "project_id": self.project_id,
+                "region_index": self.se_region_index[search_engine],
+                "date1": self.dates[0],
+                "date2": self.dates[-1],
+                "type_range": 0,
+                "show_visibility": True,
+                "show_avg": True,
+                "show_tops": True,
+                "filters": [
+                    {
+                        "name": "tags",
+                        "operator": "IN",
+                        "values": [
+                            str(tag)
+                        ]
+                    }
+                ],
+                "group_folder_id_depth": "1"
+            }
+
+        return self.payload
+
     def _make_directories_for_json(self):
 
         if not os.path.exists('D:\\pyprojects\\datastudio\\topvisor\\charts\\'):
@@ -143,12 +201,12 @@ class Topvisor:
             self._get_response(search_engine=se, type='base')
             self._save_response_to_json(se, 'base')
 
-        df = self._reformat_response_for_summary_dataframe()
-
-        sheet_name = 'summary_test'
-        sender = GoogleSheetWriter(self.service_file_path, self.work_book_id, sheet_name)
-
-        sender.run(df)
+        # df = self._reformat_response_for_summary_dataframe()
+        #
+        # sheet_name = 'summary_test'
+        # sender = GoogleSheetWriter(self.service_file_path, self.work_book_id, sheet_name)
+        #
+        # sender.run(df)
 
     def _get_response(self, search_engine, type, tag=0, folder=''):
         """
@@ -160,69 +218,11 @@ class Topvisor:
 
         return self.response
 
-    def _payload_generator(self, type, search_engine, tag=0, folder=''):
-
-        if type == 'base':
-            self.payload = {
-                "project_id": self.project_id,
-                "region_index": self.se_region_index[search_engine],
-                "date1": self.dates[0],
-                "date2": self.dates[-1],
-                "type_range": 0,
-                "show_visibility": True,
-                "show_avg": True,
-                "show_tops": True
-            }
-        elif type == 'folder':
-            self.payload = {
-                "project_id": self.project_id,
-                "region_index": self.se_region_index[search_engine],
-                "date1": self.dates[0],
-                "date2": self.dates[-1],
-                "type_range": 0,
-                "show_visibility": True,
-                "show_avg": True,
-                "show_tops": True,
-                "filters": [
-                    {
-                        "name": "group_folder_id",
-                        "operator": "EQUALS",
-                        "values": [
-                            str(self.folders_dict[folder])
-                        ]
-                    }
-                ],
-                "group_folder_id_depth": "1"
-            }
-        elif type == 'tag':
-            self.payload = {
-                "project_id": self.project_id,
-                "region_index": self.se_region_index[search_engine],
-                "date1": self.dates[0],
-                "date2": self.dates[-1],
-                "type_range": 0,
-                "show_visibility": True,
-                "show_avg": True,
-                "show_tops": True,
-                "filters": [
-                    {
-                        "name": "tags",
-                        "operator": "IN",
-                        "values": [
-                            str(tag)
-                        ]
-                    }
-                ],
-                "group_folder_id_depth": "1"
-            }
-
-        return self.payload
-
     def _save_response_to_json(self, type, search_engine, tag=0, folder=''):
 
         if type == 'base':
             print(f'Saving /topvisor/charts/{self.date_today}-{search_engine}-summary-chart.json')
-            with open(f'topvisor/charts/{self.date_today}-{search_engine}-summary-chart.json', 'w', encoding='utf-8') as file:
+            with open(f'D:\\pyprojects\\datastudio\\topvisor\\charts\\{self.date_today}-{search_engine}-summary-chart.json', 'w', encoding='utf-8') as file:
                 json.dump(self.response.json(), file, indent=4, ensure_ascii=False)
                 file.close()
         elif type == 'folder':
