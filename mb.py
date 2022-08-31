@@ -137,3 +137,8 @@ for header in mb_headers:
 mb_with_phone_numbers = mb_copy.dropna(subset='CustomerMobilePhone')
 
 mb_with_phone_numbers = mb_with_phone_numbers.astype({"CustomerMobilePhone": "str"})
+
+inner_join = pd.merge(df1,
+                      df2,
+                      on ='Name',
+                      how ='inner')
