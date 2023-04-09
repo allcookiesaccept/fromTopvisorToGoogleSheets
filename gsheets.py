@@ -64,12 +64,6 @@ class GoogleSheetWriter:
         self._clear_worksheet()
         self._write_dataframe_to_google_worksheet(df)
 
-def main():
-
-    secret_key = 'pysheets-347309-9629095400b4.json'
-    sheet_id = '1UmHsFGC6LiQEeuVCtGZPCB8VzkpVUaAvwQ9D9y5FS-w'
-    sheet_name = 'channels'
-
 
 if __name__ == '__main__':
     main()
