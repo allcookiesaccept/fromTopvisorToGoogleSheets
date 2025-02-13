@@ -2,8 +2,16 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+# Ignore sensitive files
+.env
+settings.yaml
+service_account.json
 config.yaml
+
+# Allow template files
+!.env.dist
+!settings.yaml.dist
+!service_account.json.dist
 # C extensions
 *.so
 

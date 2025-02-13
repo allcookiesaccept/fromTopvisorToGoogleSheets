@@ -1,0 +1,31 @@
+api:
+  base_url: "https://api.topvisor.com"
+  default_metrics:
+    - avg
+    - visibility
+  default_tops:
+    - all
+    - 1_3
+    - 1_10
+    - 11_30
+
+projects:
+  Project_1:
+    project_id: ""
+    se_region_index:
+      yandex: 3
+      google: 6
+    tags:
+      commercial: 2
+    folders:
+    metrics:
+    tops:
+  Project_2:
+    project_id: ""
+    se_region_index:
+      yandex: 3
+      google: 6
+    tags:
+    folders:
+    metrics:  # Использование общих метрик по умолчанию
+    tops:  # Использование общих топов по умолчанию
