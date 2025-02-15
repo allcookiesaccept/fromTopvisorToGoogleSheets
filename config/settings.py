@@ -36,7 +36,7 @@ class Config:
                 "workbook_id": os.getenv("GOOGLE_SHEETS_WORKBOOK_ID"),
                 "service_file_path": os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH"),
             },
-            "TOPVISOR_API": os.getenv("TOPVISOR_API_KEY"),
+            "TOPVISOR_API": os.getenv("TOPVISOR_API"),
             "USER_ID": os.getenv("USER_ID"),
             "PROJECTS": self.yaml_data.get("projects", {}),
         }
