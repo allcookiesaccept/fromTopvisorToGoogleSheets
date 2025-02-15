@@ -7,13 +7,19 @@ class ProjectsService(BaseService):
         self.projects_api_url = "/v2/json/get/projects_2/projects"
         self.competitors_api_url = "/v2/json/get/projects_2/competitors"
 
-    def get_projects(self, show_site_stat=False, show_searchers_and_regions=0):
+    def get_projects(
+        self,
+        show_site_stat=True,
+        show_searchers_and_regions=1,
+        include_positions_summary_params=[],
+    ):
         """
         Получает список проектов.
         """
         payload = {
             "show_site_stat": show_site_stat,
             "show_searchers_and_regions": show_searchers_and_regions,
+            "include_positions_summary_params": include_positions_summary_params,
         }
         endpoint = self.projects_api_url
         return self.send_request(endpoint, payload)

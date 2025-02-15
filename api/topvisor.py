@@ -12,9 +12,7 @@ class TopvisorAPI:
         }
 
     def send_request(self, endpoint, payload):
-        """
-        Отправляет POST-запрос к API Topvisor.
-        """
+
         try:
             url = f"{self.base_url}{endpoint}"
             response = requests.post(url, headers=self.headers, json=payload)
@@ -37,9 +35,7 @@ class ServiceFactory:
         self._services = {}
 
     def get_service(self, service_name):
-        """
-        Возвращает экземпляр сервиса. Если сервис еще не создан, создает его.
-        """
+
         if service_name not in self._services:
             if service_name == "positions":
                 self._services[service_name] = PositionsService(self.api_client)
@@ -68,5 +64,11 @@ class Topvisor:
         elif task_name == "get_keywords_folders":
             keywords_service = self.service_factory.get_service("keywords")
             return keywords_service.get_folders(**kwargs)
+        elif task_name == "get_competitors":
+            projects_service = self.service_factory.get_service("projects")
+            return projects_service.get_projects(**kwargs)
+        elif task_name == "get_regions_and_searchers":
+            projects_service = self.service_factory.get_service("projects")
+            return projects_service.get_projects(**kwargs)
         else:
             raise ValueError(f"Неизвестная задача: {task_name}")

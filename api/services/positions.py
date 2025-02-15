@@ -3,10 +3,9 @@ from .payload_factory import PayloadFactory
 
 
 class PositionsService(BaseService):
+
     def get_summary_chart(self, project_id, region_index, dates, **kwargs):
-        """
-        Получает данные сводки позиций.
-        """
+
         payload = PayloadFactory.generate_summary_chart_payload(
             project_id=project_id, region_index=region_index, dates=dates, **kwargs
         )
