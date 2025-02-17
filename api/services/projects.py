@@ -10,7 +10,7 @@ class ProjectsService(BaseService):
     def get_projects(
         self,
         show_site_stat=True,
-        show_searchers_and_regions=1,
+        show_searchers_and_regions=0,
         include_positions_summary_params=[],
     ):
         """
@@ -42,8 +42,7 @@ class ProjectsService(BaseService):
         """
         payload = {
             "project_id": project_id,
-            "show_searchers_and_regions": 2,  # Возвращает все регионы
+            "show_searchers_and_regions": 1,  # Возвращает все регионы
         }
         endpoint = self.projects_api_url
-        response = self.send_request(endpoint, payload)
-        return response.get("result", {}).get("searchersAndRegions", [])
+        return self.send_request(endpoint, payload)

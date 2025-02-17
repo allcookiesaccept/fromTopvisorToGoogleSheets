@@ -8,6 +8,8 @@ settings.yaml
 service_account.json
 config.yaml
 
+*promt*
+
 # Allow template files
 !.env.dist
 !settings.yaml.dist
