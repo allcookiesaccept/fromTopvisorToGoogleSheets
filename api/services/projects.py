@@ -35,14 +35,3 @@ class ProjectsService(BaseService):
         }
         endpoint = self.competitors_api_url
         return self.send_request(endpoint, payload)
-
-    def get_regions_and_searchers(self, project_id):
-        """
-        Получает регионы и поисковые системы, привязанные к проекту.
-        """
-        payload = {
-            "project_id": project_id,
-            "show_searchers_and_regions": 1,  # Возвращает все регионы
-        }
-        endpoint = self.projects_api_url
-        return self.send_request(endpoint, payload)

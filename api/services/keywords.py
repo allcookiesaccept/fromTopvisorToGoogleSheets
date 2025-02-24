@@ -15,12 +15,10 @@ class KeywordsService(BaseService):
         )
         return self.send_request(self.folders_endpoint, payload)
 
-    def get_groups(self, project_id, folder_id=None, show_trash=False):
+    def get_groups(self, project_id, show_trash=False):
         payload = PayloadFactory.generate_keywords_get_groups_payload(
-            project_id=project_id, view="list", show_trash=show_trash
+            project_id=project_id, show_trash=show_trash
         )
-        if folder_id:
-            payload["folder_id"] = folder_id
         return self.send_request(self.groups_endpoint, payload)
 
     def get_volume(self, project_id, qualifiers, target_type="groups", filters=None):
