@@ -67,7 +67,7 @@ class PositionsService(BaseService):
         :param kwargs: Дополнительные параметры.
         :return: Результат запроса.
         """
-        payload = PayloadFactory.generate_positions_get_summary_chart_payload(
+        payload = PayloadFactory.positions_get_summary_chart_payload(
             project_id=project_id,
             region_index=region_index,
             dates=dates,
@@ -77,19 +77,6 @@ class PositionsService(BaseService):
         )
         return self.send_request(self.endpoints["summary_chart"], payload)
 
-    def get_checker_price(self, filters, **kwargs):
-        """
-        Получает стоимость проверки позиций.
-
-        :param filters: Фильтры проектов.
-        :param kwargs: Дополнительные параметры.
-        :return: Результат запроса.
-        """
-        payload = PayloadFactory.generate_positions_checker_price_payload(
-            filters=filters, **kwargs
-        )
-        return self.send_request(self.endpoints["checker_price"], payload)
-
     def get_searchers_regions(self, project_id, **kwargs):
         """
         Экспортирует список регионов, добавленных в проект.
@@ -98,7 +85,7 @@ class PositionsService(BaseService):
         :param kwargs: Дополнительные параметры.
         :return: Результат запроса.
         """
-        payload = PayloadFactory.generate_positions_searchers_regions_export_payload(
+        payload = PayloadFactory.positions_get_searchers_regions_payload(
             project_id=project_id, **kwargs
         )
         return self.send_request(self.endpoints["searchers_regions_export"], payload)
