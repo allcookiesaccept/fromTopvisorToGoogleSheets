@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta
 from config.settings import Config
 from typing import List, Dict
+from config.logger import logger
+from db.sqlitedb import SQLiteDB
+
 
 class ProjectManager:
+
     def __init__(self, config: Config):
+        logger.debug("Initializing ProjectManager...")
         self.config: Config = config
         self.topvisor = self._initialize_topvisor()
-
+        logger.info("ProjectManager initialized successfully.")
 
     def _initialize_topvisor(self):
         """
@@ -14,6 +19,7 @@ class ProjectManager:
         :return: Topvisor API client instance.
         """
         from pytopvisor.topvisor import Topvisor
+        logger.debug("Initializing Topvisor...")
 
         user_id = self.config.get("user_id")
         api_key = self.config.get("api_key")
@@ -21,6 +27,7 @@ class ProjectManager:
         if not user_id or not api_key:
             raise ValueError("Missing 'user_id' or 'api_key' in configuration.")
 
+        logger.info("Topvisor initialized successfully.")
         return Topvisor(user_id=user_id, api_key=api_key)
 
 
@@ -32,6 +39,7 @@ class ProjectManager:
         :param days_back: Number of days to look back.
         :return: List of dates as strings.
         """
+        logger.debug(f"Fetching dates from history for project_id={project_id}, region_index={region_index}, days_back={days_back}")
         end_date = datetime.now().strftime("%Y-%m-%d")
         start_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
         print(start_date, end_date)
@@ -44,6 +52,8 @@ class ProjectManager:
             date2=end_date,
             show_exists_dates=True
         )
+        logger.debug(f"Get History response")
+
         # Extract all dates from the response
         all_dates = history["result"]["existsDates"]
 
@@ -53,6 +63,7 @@ class ProjectManager:
             key=lambda x: datetime.strptime(x, "%Y-%m-%d"),
             reverse=True
         )[:3]
+        logger.info(f"Last 3 dates fetched: {last_3_dates}")
 
         return last_3_dates
 
@@ -64,6 +75,8 @@ class ProjectManager:
         :param dates: List of dates to retrieve data for.
         :return: List of dictionaries containing summary data.
         """
+        logger.debug(f"Fetching summary data for project_id={project_id}, region_index={region_index}, dates={dates}")
+
         summary_chart = self.topvisor.run_task(
             "get_summary_chart",
             project_id=project_id,
@@ -73,6 +86,7 @@ class ProjectManager:
             show_avg=True,
             show_visibility=True
         )
+        logger.debug(f"Summary chart response: {summary_chart}")
 
         result = []
         for i, date in enumerate(summary_chart["result"]["dates"]):
@@ -90,6 +104,8 @@ class ProjectManager:
                 "visibility": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["visibility"][i]
             }
             result.append(data)
+        logger.info(f"Summary data processed for {len(result)} dates.")
+
         return result
 
     def process_project(self, project_id: int, region_index: int, days_back: int = 3) -> List[Dict]:
@@ -100,6 +116,7 @@ class ProjectManager:
         :param days_back: Number of days to look back.
         :return: List of dictionaries containing processed data.
         """
+
         # Step 1: Get dates from history
         dates = self.get_dates_from_history(project_id, region_index, days_back)
 
@@ -114,6 +131,8 @@ class ProjectManager:
         :param days_back: Number of days to look back.
         :return: List of dictionaries containing processed data for all projects.
         """
+        logger.info(f"Starting the process with days_back={days_back}...")
+
         all_data = []
 
         for project in self.config.get("projects", []):
@@ -123,7 +142,17 @@ class ProjectManager:
             if not project_id or not region_index:
                 raise ValueError("Each project must have 'project_id' and 'region_index'")
 
+            logger.info(f"Processing project_id={project_id}, region_index={region_index}")
+
             project_data = self.process_project(project_id, region_index, days_back)
             all_data.extend(project_data)
 
+        logger.info(f"Process completed. Total records processed: {len(all_data)}")
+
         return all_data
+
+    def save_to_db(self, db: SQLiteDB, data: List[Dict]):
+        logger.info(f"Saving {len(data)} records to the database...")
+        for record in data:
+            db.create("project_data", record)
+        logger.info("Data saved successfully.")

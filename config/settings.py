@@ -3,7 +3,7 @@ import yaml
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Any
-
+from config.logger import logger
 
 class EnvLoader:
     def __init__(self, env_path: Path):
@@ -40,6 +40,8 @@ class Config:
         return cls._instance
 
     def _load_config(self):
+        logger.debug("Loading configuration...")
+
         BASE_DIR = Path(os.getenv("BASE_DIR", Path(__file__).resolve().parent.parent))
         env_loader = EnvLoader(BASE_DIR / "config" / ".env")
         yaml_loader = YAMLLoader(BASE_DIR / "config" / "settings.yaml")
@@ -51,7 +53,9 @@ class Config:
             "google_sheets": env_loader.data.get("GOOGLE_SHEETS"),
             "projects": yaml_loader.data.get("projects", {}),
         }
+        logger.debug(f"Configuration loaded: {self._data}")
         self.validate()
+        logger.info("Configuration validated successfully.")
 
     def validate(self):
         required_fields = ["api_key", "user_id", "projects"]

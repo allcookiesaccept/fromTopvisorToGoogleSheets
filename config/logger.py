@@ -19,26 +19,28 @@ class Logger:
         self.logger = logging.getLogger("TopvisorLogger")
         self.logger.setLevel(logging.DEBUG)
 
-        # Создание директории для логов, если её нет
-        logs_dir = Path(__file__).resolve().parent.parent / "logs"
-        logs_dir.mkdir(exist_ok=True)
+        # Проверяем, есть ли уже обработчики
+        if not self.logger.handlers:
+            # Создание директории для логов, если её нет
+            logs_dir = Path(__file__).resolve().parent.parent / "logs"
+            logs_dir.mkdir(exist_ok=True)
 
-        # Формат логов
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+            # Формат логов
+            formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-        # Логирование в файл
-        file_handler = logging.FileHandler(logs_dir / log_file, encoding="utf-8")
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
+            # Логирование в файл
+            file_handler = logging.FileHandler(logs_dir / log_file, encoding="utf-8")
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(formatter)
 
-        # Логирование в консоль (опционально)
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        console_handler.setFormatter(formatter)
+            # Логирование в консоль
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(logging.INFO)
+            console_handler.setFormatter(formatter)
 
-        # Добавление обработчиков
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
+            # Добавление обработчиков
+            self.logger.addHandler(file_handler)
+            self.logger.addHandler(console_handler)
 
     def get_logger(self):
         """

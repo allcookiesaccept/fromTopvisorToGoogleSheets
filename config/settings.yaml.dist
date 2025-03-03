@@ -1,10 +1,13 @@
-api:
-  base_url: "https://api.topvisor.com"
-  default_metrics:
-    avg
-    visibility
-  default_tops:
-    all
-    1_3
-    1_10
-    11_30
+projects:
+  - project_id: 1
+    region_index: 30
+    project_name: winline
+  - project_id: 2
+    region_index: 30
+    project_name: leon
+  - project_id: 2
+    region_index: 30
+    project_name: pari
+  - project_id: 3
+    region_index: 30
+    project_name: fonbet
