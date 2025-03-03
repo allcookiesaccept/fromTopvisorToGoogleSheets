@@ -9,7 +9,7 @@ service_account.json
 config.yaml
 
 *promt*
-
+*googlesheetwriter.json*
 # Allow template files
 !.env.dist
 !settings.yaml.dist

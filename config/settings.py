@@ -50,7 +50,8 @@ class Config:
             "base_dir": str(BASE_DIR),
             "api_key": env_loader.data.get("TOPVISOR_API"),
             "user_id": env_loader.data.get("USER_ID"),
-            "google_sheets": env_loader.data.get("GOOGLE_SHEETS"),
+            "google_sheets": env_loader.data.get("GOOGLE_SHEETS_ID"),
+            "service_file": env_loader.data.get("SERVICE_FILE_NAME"),
             "projects": yaml_loader.data.get("projects", {}),
         }
         logger.debug(f"Configuration loaded: {self._data}")
