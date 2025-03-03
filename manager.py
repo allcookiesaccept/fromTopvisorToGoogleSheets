@@ -11,6 +11,7 @@ class ProjectManager:
         logger.debug("Initializing ProjectManager...")
         self.config: Config = config
         self.topvisor = self._initialize_topvisor()
+        self.db = SQLiteDB()  # Инициализация базы данных
         logger.info("ProjectManager initialized successfully.")
 
     def _initialize_topvisor(self):
@@ -42,30 +43,38 @@ class ProjectManager:
         logger.debug(f"Fetching dates from history for project_id={project_id}, region_index={region_index}, days_back={days_back}")
         end_date = datetime.now().strftime("%Y-%m-%d")
         start_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
-        print(start_date, end_date)
+        logger.debug(f"Start date: {start_date}, End date: {end_date}")
 
-        history = self.topvisor.run_task(
-            "get_history",
-            project_id=project_id,
-            regions_indexes=[region_index],
-            date1=start_date,
-            date2=end_date,
-            show_exists_dates=True
-        )
-        logger.debug(f"Get History response")
+        try:
+            history = self.topvisor.run_task(
+                "get_history",
+                project_id=project_id,
+                regions_indexes=[region_index],
+                date1=start_date,
+                date2=end_date,
+                show_exists_dates=True
+            )
+            logger.debug(f"Get History response: {history}")
 
-        # Extract all dates from the response
-        all_dates = history["result"]["existsDates"]
+            # Extract all dates from the response
+            all_dates = history["result"]["existsDates"]
 
-        # Filter the last 3 dates (or any other number)
-        last_3_dates = sorted(
-            all_dates,
-            key=lambda x: datetime.strptime(x, "%Y-%m-%d"),
-            reverse=True
-        )[:3]
-        logger.info(f"Last 3 dates fetched: {last_3_dates}")
+            # Filter the last 3 dates (or any other number)
+            last_3_dates = sorted(
+                all_dates,
+                key=lambda x: datetime.strptime(x, "%Y-%m-%d"),
+                reverse=True
+            )[:3]
+            logger.info(f"Last 3 dates fetched: {last_3_dates}")
 
-        return last_3_dates
+            return last_3_dates
+
+        except KeyError as e:
+            logger.error(f"KeyError in get_dates_from_history: {e}")
+            raise ValueError(f"Unexpected API response format. Missing key: {e}")
+        except Exception as e:
+            logger.error(f"Error fetching dates from history: {e}")
+            raise
 
     def get_summary_data(self, project_id: int, region_index: int, dates: List[str]) -> List[Dict]:
         """
@@ -77,36 +86,44 @@ class ProjectManager:
         """
         logger.debug(f"Fetching summary data for project_id={project_id}, region_index={region_index}, dates={dates}")
 
-        summary_chart = self.topvisor.run_task(
-            "get_summary_chart",
-            project_id=project_id,
-            region_index=region_index,
-            dates=dates,
-            show_tops=True,
-            show_avg=True,
-            show_visibility=True
-        )
-        logger.debug(f"Summary chart response: {summary_chart}")
+        try:
+            summary_chart = self.topvisor.run_task(
+                "get_summary_chart",
+                project_id=project_id,
+                region_index=region_index,
+                dates=dates,
+                show_tops=True,
+                show_avg=True,
+                show_visibility=True
+            )
+            logger.debug(f"Summary chart response: {summary_chart}")
 
-        result = []
-        for i, date in enumerate(summary_chart["result"]["dates"]):
-            data = {
-                "date": date,
-                "project_id": project_id,
-                "region_index": region_index,
-                "all": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["all"][i],
-                "top_1_3": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["1_3"][i],
-                "top_1_10": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["1_10"][i],
-                "top_11_30": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["11_30"][i],
-                "top_31_50": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["31_50"][i],
-                "top_51_100": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["51_100"][i],
-                "avg_position": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["avg"][i],
-                "visibility": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["visibility"][i]
-            }
-            result.append(data)
-        logger.info(f"Summary data processed for {len(result)} dates.")
+            result = []
+            for i, date in enumerate(summary_chart["result"]["dates"]):
+                data = {
+                    "date": date,
+                    "project_id": project_id,
+                    "region_index": region_index,
+                    "all_positions": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["all"][i],
+                    "top_1_3": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["1_3"][i],
+                    "top_1_10": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["1_10"][i],
+                    "top_11_30": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["11_30"][i],
+                    "top_31_50": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["31_50"][i],
+                    "top_51_100": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["51_100"][i],
+                    "avg_position": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["avg"][i],
+                    "visibility": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["visibility"][i]
+                }
+                result.append(data)
 
-        return result
+            logger.info(f"Summary data processed for {len(result)} dates.")
+            return result
+
+        except KeyError as e:
+            logger.error(f"KeyError in get_summary_data: {e}")
+            raise ValueError(f"Unexpected API response format. Missing key: {e}")
+        except Exception as e:
+            logger.error(f"Error fetching summary data: {e}")
+            raise
 
     def process_project(self, project_id: int, region_index: int, days_back: int = 3) -> List[Dict]:
         """
@@ -116,6 +133,7 @@ class ProjectManager:
         :param days_back: Number of days to look back.
         :return: List of dictionaries containing processed data.
         """
+        logger.info(f"Processing project_id={project_id}, region_index={region_index}")
 
         # Step 1: Get dates from history
         dates = self.get_dates_from_history(project_id, region_index, days_back)
@@ -123,7 +141,23 @@ class ProjectManager:
         # Step 2: Get summary data for the dates
         summary_data = self.get_summary_data(project_id, region_index, dates)
 
+        # Step 3: Save data to the database
+        self.save_to_db(summary_data)
+
         return summary_data
+
+    def save_to_db(self, data: List[Dict]):
+        """
+        Save data to the SQLite database.
+        :param data: List of dictionaries containing data to save.
+        """
+        logger.info(f"Saving {len(data)} records to the database...")
+        for record in data:
+            if not self.db.record_exists("project_data", record["date"], record["project_id"], record["region_index"]):
+                self.db.create("project_data", record)
+            else:
+                logger.debug(f"Record for date={record['date']}, project_id={record['project_id']}, region_index={record['region_index']} already exists. Skipping.")
+        logger.info("Data saved successfully.")
 
     def run(self, days_back: int = 3) -> List[Dict]:
         """
@@ -140,6 +174,7 @@ class ProjectManager:
             region_index = project.get("region_index")
 
             if not project_id or not region_index:
+                logger.error("Each project must have 'project_id' and 'region_index'")
                 raise ValueError("Each project must have 'project_id' and 'region_index'")
 
             logger.info(f"Processing project_id={project_id}, region_index={region_index}")
@@ -151,8 +186,11 @@ class ProjectManager:
 
         return all_data
 
-    def save_to_db(self, db: SQLiteDB, data: List[Dict]):
-        logger.info(f"Saving {len(data)} records to the database...")
+    def save_to_db(self, data: List[Dict]):
+        """
+        Save data to the SQLite database.
+        :param data: List of dictionaries containing data to save.
+        """
         for record in data:
-            db.create("project_data", record)
-        logger.info("Data saved successfully.")
+            if not self.db.record_exists("project_data", record["date"], record["project_id"], record["region_index"]):
+                self.db.create("project_data", record)
