@@ -3,7 +3,7 @@ from config.settings import Config
 from typing import List, Dict
 from config.logger import logger
 from db.sqlitedb import SQLiteDB
-
+from db.googlesheetwriter import GoogleSheetsManager
 
 class ProjectManager:
 
@@ -12,6 +12,7 @@ class ProjectManager:
         self.config: Config = config
         self.topvisor = self._initialize_topvisor()
         self.db = SQLiteDB()  # Инициализация базы данных
+        self.google_sheets = self._initialize_google_sheets()
         logger.info("ProjectManager initialized successfully.")
 
     def _initialize_topvisor(self):
@@ -30,6 +31,22 @@ class ProjectManager:
 
         logger.info("Topvisor initialized successfully.")
         return Topvisor(user_id=user_id, api_key=api_key)
+
+    def _initialize_google_sheets(self):
+        """
+        Initialize the Google Sheets Manager.
+        :return: GoogleSheetsManager instance.
+        """
+        service_file_name = self.config.get("service_file")
+        spreadsheet_id = self.config.get("google_sheets")
+
+        if not service_file_name or not spreadsheet_id:
+            raise ValueError("Missing 'service_file' or 'google_sheets' in configuration.")
+
+        return GoogleSheetsManager(
+            credentials_path=f"config/{service_file_name}",
+            spreadsheet_id=spreadsheet_id
+        )
 
 
     def get_dates_from_history(self, project_id: int, region_index: int, days_back: int = 3) -> List[str]:
@@ -188,9 +205,62 @@ class ProjectManager:
 
     def save_to_db(self, data: List[Dict]):
         """
-        Save data to the SQLite database.
+        Save data to the SQLite database and then copy it to Google Sheets.
         :param data: List of dictionaries containing data to save.
         """
         for record in data:
             if not self.db.record_exists("project_data", record["date"], record["project_id"], record["region_index"]):
                 self.db.create("project_data", record)
+            else:
+                logger.debug(f"Record for date={record['date']}, project_id={record['project_id']}, region_index={record['region_index']} already exists. Skipping.")
+        logger.info("Data saved to SQLite successfully.")
+
+        # Copy data from SQLite to Google Sheets
+        self.copy_to_google_sheets()
+
+    def copy_to_google_sheets(self):
+        """
+        Copy all data from SQLite to Google Sheets.
+        """
+        logger.info("Copying data from SQLite to Google Sheets...")
+
+        # Read all data from SQLite
+        sqlite_data = self.db.read("project_data")
+
+        # Transform data into a list of rows for Google Sheets
+        rows = [
+            [
+                record["date"],
+                record["project_id"],
+                record["region_index"],
+                record["all_positions"],
+                record["top_1_3"],
+                record["top_1_10"],
+                record["top_11_30"],
+                record["top_31_50"],
+                record["top_51_100"],
+                record["avg_position"],
+                record["visibility"]
+            ]
+            for record in sqlite_data
+        ]
+
+        # Add header row
+        header = [
+            "Date",
+            "Project ID",
+            "Region Index",
+            "All Positions",
+            "Top 1-3",
+            "Top 1-10",
+            "Top 11-30",
+            "Top 31-50",
+            "Top 51-100",
+            "Avg Position",
+            "Visibility"
+        ]
+        rows.insert(0, header)
+
+        # Write data to Google Sheets
+        self.google_sheets.write("Sheet1", "A1", rows)
+        logger.info("Data copied to Google Sheets successfully.")
