@@ -2,6 +2,32 @@ import os
 import yaml
 from pathlib import Path
 from dotenv import load_dotenv
+from typing import Any
+
+
+class EnvLoader:
+    def __init__(self, env_path: Path):
+        self.env_path = env_path
+        self.data = {}
+        self.load()
+
+    def load(self):
+        if self.env_path.exists():
+            load_dotenv(self.env_path)
+            self.data = {key: os.getenv(key) for key in os.environ}
+
+class YAMLLoader:
+    def __init__(self, yaml_path: Path):
+        self.yaml_path = yaml_path
+        self.data = {}
+        self.load()
+
+    def load(self):
+        if self.yaml_path.exists():
+            with open(self.yaml_path, "r", encoding="utf-8") as file:
+                self.data = yaml.safe_load(file)
+        else:
+            self.data = {}
 
 
 class Config:
@@ -14,49 +40,53 @@ class Config:
         return cls._instance
 
     def _load_config(self):
-        self.BASE_DIR = Path(__file__).resolve().parent.parent
+        BASE_DIR = Path(os.getenv("BASE_DIR", Path(__file__).resolve().parent.parent))
+        env_loader = EnvLoader(BASE_DIR / "config" / ".env")
+        yaml_loader = YAMLLoader(BASE_DIR / "config" / "settings.yaml")
 
-        env_path = self.BASE_DIR / "config" / ".env"
-        if env_path.exists():
-            load_dotenv(env_path)
-
-        yaml_path = self.BASE_DIR / "config" / "settings.yaml"
-        if yaml_path.exists():
-            with open(yaml_path, "r", encoding="utf-8") as file:
-                self.yaml_data = yaml.safe_load(file)
-        else:
-            self.yaml_data = {}
-
-        self.data = {
-            "BASE_DIR": str(self.BASE_DIR),
-            "API_BASE_URL": self.yaml_data.get("api", {}).get("base_url"),
-            "DEFAULT_METRICS": self.yaml_data.get("api", {}).get("default_metrics"),
-            "DEFAULT_TOPS": self.yaml_data.get("api", {}).get("default_tops"),
-            "TOPVISOR_API": os.getenv("TOPVISOR_API"),
-            "USER_ID": os.getenv("USER_ID"),
+        self._data = {
+            "base_dir": str(BASE_DIR),
+            "api_key": env_loader.data.get("TOPVISOR_API"),
+            "user_id": env_loader.data.get("USER_ID"),
+            "google_sheets": env_loader.data.get("GOOGLE_SHEETS"),
+            "projects": yaml_loader.data.get("projects", {}),
         }
+        self.validate()
 
-    def get_project(self, project_name):
-        projects = self.data.get("PROJECTS", {})
-        return projects.get(project_name)
-
-    def list_projects(self):
-        return list(self.data.get("PROJECTS", {}).keys())
-
-    def get_default_metrics(self):
-        return self.data.get("DEFAULT_METRICS", [])
-
-    def get_default_tops(self):
-        return self.data.get("DEFAULT_TOPS", [])
+    def validate(self):
+        required_fields = ["api_key", "user_id", "projects"]
+        for field in required_fields:
+            if field not in self._data or not self._data[field]:
+                raise ValueError(f"Missing or empty required field: {field}")
 
     def get(self, key, default=None):
-        return self.data.get(key, default)
+        return self._data.get(key, default)
+
+    @property
+    def user_id(self) -> str:
+        """Get the user_id."""
+        return self._data["user_id"]
+
+    @property
+    def api_key(self) -> str:
+        """Get the api_key."""
+        return self._data["api_key"]
+
+    @property
+    def projects(self) -> dict[Any, Any]:
+        """Get the list of projects."""
+        return self._data["projects"]
+
+    @property
+    def google_sheets(self) -> str | None:
+        """Get the Google Sheets settings."""
+        return self._data["google_sheets"]
 
     def __getitem__(self, key):
-        return self.data[key]
+        return self._data[key]
 
     def __setitem__(self, key, value):
-        self.data[key] = value
+        self._data[key] = value
 
     def __repr__(self):
-        return f"<Config: {self.data}>"
+        return f"<Config: {self._data}>"
