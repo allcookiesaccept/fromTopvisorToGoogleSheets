@@ -163,19 +163,6 @@ class ProjectManager:
 
         return summary_data
 
-    def save_to_db(self, data: List[Dict]):
-        """
-        Save data to the SQLite database.
-        :param data: List of dictionaries containing data to save.
-        """
-        logger.info(f"Saving {len(data)} records to the database...")
-        for record in data:
-            if not self.db.record_exists("project_data", record["date"], record["project_id"], record["region_index"]):
-                self.db.create("project_data", record)
-            else:
-                logger.debug(f"Record for date={record['date']}, project_id={record['project_id']}, region_index={record['region_index']} already exists. Skipping.")
-        logger.info("Data saved successfully.")
-
     def run(self, days_back: int = 3) -> List[Dict]:
         """
         Run the entire process for all projects and return the combined data.
@@ -200,7 +187,8 @@ class ProjectManager:
             all_data.extend(project_data)
 
         logger.info(f"Process completed. Total records processed: {len(all_data)}")
-
+        self.copy_to_google_sheets()
+        logger.info(f"Google Sheets updated")
         return all_data
 
     def save_to_db(self, data: List[Dict]):
@@ -216,7 +204,6 @@ class ProjectManager:
         logger.info("Data saved to SQLite successfully.")
 
         # Copy data from SQLite to Google Sheets
-        self.copy_to_google_sheets()
 
     def copy_to_google_sheets(self):
         """
