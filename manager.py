@@ -11,7 +11,7 @@ class ProjectManager:
         logger.debug("Initializing ProjectManager...")
         self.config: Config = config
         self.topvisor = self._initialize_topvisor()
-        self.db = SQLiteDB()  # Инициализация базы данных
+        self.db = SQLiteDB()
         self.google_sheets = self._initialize_google_sheets()
         logger.info("ProjectManager initialized successfully.")
 
@@ -251,3 +251,12 @@ class ProjectManager:
         # Write data to Google Sheets
         self.google_sheets.write("Sheet1", "A1", rows)
         logger.info("Data copied to Google Sheets successfully.")
+
+
+if __name__ == "__main__":
+    from config.settings import Config
+
+    config = Config()
+
+    pm = ProjectManager(config)
+    pm.run()
