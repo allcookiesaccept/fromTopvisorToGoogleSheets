@@ -77,14 +77,14 @@ class ProjectManager:
             all_dates = history["result"]["existsDates"]
 
             # Filter the last 3 dates (or any other number)
-            last_3_dates = sorted(
+            last_10_dates = sorted(
                 all_dates,
                 key=lambda x: datetime.strptime(x, "%Y-%m-%d"),
                 reverse=True
-            )[:3]
-            logger.info(f"Last 3 dates fetched: {last_3_dates}")
+            )[:10]
+            logger.info(f"Last 3 dates fetched: {last_10_dates}")
 
-            return last_3_dates
+            return last_10_dates
 
         except KeyError as e:
             logger.error(f"KeyError in get_dates_from_history: {e}")
@@ -93,16 +93,8 @@ class ProjectManager:
             logger.error(f"Error fetching dates from history: {e}")
             raise
 
-    def get_summary_data(self, project_id: int, region_index: int, dates: List[str]) -> List[Dict]:
-        """
-        Get summary data for the given dates.
-        :param project_id: ID of the project.
-        :param region_index: Index of the region.
-        :param dates: List of dates to retrieve data for.
-        :return: List of dictionaries containing summary data.
-        """
+    def get_summary_data(self, project_id: int, region_index: int, dates: List[str], project_info: Dict) -> List[Dict]:
         logger.debug(f"Fetching summary data for project_id={project_id}, region_index={region_index}, dates={dates}")
-
         try:
             summary_chart = self.topvisor.run_task(
                 "get_summary_chart",
@@ -114,7 +106,6 @@ class ProjectManager:
                 show_visibility=True
             )
             logger.debug(f"Summary chart response: {summary_chart}")
-
             result = []
             for i, date in enumerate(summary_chart["result"]["dates"]):
                 data = {
@@ -128,13 +119,14 @@ class ProjectManager:
                     "top_31_50": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["31_50"][i],
                     "top_51_100": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["tops"]["51_100"][i],
                     "avg_position": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["avg"][i],
-                    "visibility": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["visibility"][i]
+                    "visibility": summary_chart["result"]["seriesByProjectsId"][str(project_id)]["visibility"][i],
+                    "project_name": project_info["project_name"],  # New field
+                    "search_engine": project_info["search_engine"],  # New field
+                    "region": project_info["region"]  # New field
                 }
                 result.append(data)
-
             logger.info(f"Summary data processed for {len(result)} dates.")
             return result
-
         except KeyError as e:
             logger.error(f"KeyError in get_summary_data: {e}")
             raise ValueError(f"Unexpected API response format. Missing key: {e}")
@@ -142,7 +134,7 @@ class ProjectManager:
             logger.error(f"Error fetching summary data: {e}")
             raise
 
-    def process_project(self, project_id: int, region_index: int, days_back: int = 3) -> List[Dict]:
+    def process_project(self, project_id: int, region_index: int, project_info: Dict, days_back: int = 3) -> List[Dict]:
         """
         Process a single project and return the formatted data.
         :param project_id: ID of the project.
@@ -154,16 +146,14 @@ class ProjectManager:
 
         # Step 1: Get dates from history
         dates = self.get_dates_from_history(project_id, region_index, days_back)
-
         # Step 2: Get summary data for the dates
-        summary_data = self.get_summary_data(project_id, region_index, dates)
-
+        summary_data = self.get_summary_data(project_id, region_index, dates, project_info)
         # Step 3: Save data to the database
         self.save_to_db(summary_data)
 
         return summary_data
 
-    def run(self, days_back: int = 3) -> List[Dict]:
+    def run(self, days_back: int = 10) -> List[Dict]:
         """
         Run the entire process for all projects and return the combined data.
         :param days_back: Number of days to look back.
@@ -172,20 +162,25 @@ class ProjectManager:
         logger.info(f"Starting the process with days_back={days_back}...")
 
         all_data = []
-
         for project in self.config.get("projects", []):
             project_id = project.get("project_id")
             region_index = project.get("region_index")
-
-            if not project_id or not region_index:
-                logger.error("Each project must have 'project_id' and 'region_index'")
-                raise ValueError("Each project must have 'project_id' and 'region_index'")
-
+            project_name = project.get("project_name")
+            search_engine = project.get("search_engine")
+            region = project.get("region")
+            if not all([project_id, region_index, project_name, search_engine, region]):
+                logger.error(
+                    "Each project must have 'project_id', 'region_index', 'project_name', 'search_engine', and 'region'")
+                raise ValueError(
+                    "Each project must have 'project_id', 'region_index', 'project_name', 'search_engine', and 'region'")
             logger.info(f"Processing project_id={project_id}, region_index={region_index}")
-
-            project_data = self.process_project(project_id, region_index, days_back)
+            project_info = {
+                "project_name": project_name,
+                "search_engine": search_engine,
+                "region": region
+            }
+            project_data = self.process_project(project_id, region_index, project_info, days_back)
             all_data.extend(project_data)
-
         logger.info(f"Process completed. Total records processed: {len(all_data)}")
         self.copy_to_google_sheets()
         logger.info(f"Google Sheets updated")
@@ -200,10 +195,11 @@ class ProjectManager:
             if not self.db.record_exists("project_data", record["date"], record["project_id"], record["region_index"]):
                 self.db.create("project_data", record)
             else:
-                logger.debug(f"Record for date={record['date']}, project_id={record['project_id']}, region_index={record['region_index']} already exists. Skipping.")
+                logger.debug(
+                    f"Record for date={record['date']}, project_id={record['project_id']}, region_index={record['region_index']} already exists. Skipping.")
         logger.info("Data saved to SQLite successfully.")
 
-        # Copy data from SQLite to Google Sheets
+
 
     def copy_to_google_sheets(self):
         """
@@ -227,29 +223,31 @@ class ProjectManager:
                 record["top_31_50"],
                 record["top_51_100"],
                 record["avg_position"],
-                record["visibility"]
+                record["visibility"],
+                record["project_name"],  # New column
+                record["search_engine"],  # New column
+                record["region"]  # New column
             ]
             for record in sqlite_data
         ]
-
-        # Add header row
         header = [
             "Date",
             "Project ID",
             "Region Index",
-            "All Positions",
+            "All Keywords",
             "Top 1-3",
             "Top 1-10",
             "Top 11-30",
             "Top 31-50",
             "Top 51-100",
             "Avg Position",
-            "Visibility"
+            "Visibility",
+            "Project Name",  # New header
+            "Search Engine",  # New header
+            "Region"  # New header
         ]
         rows.insert(0, header)
-
-        # Write data to Google Sheets
-        self.google_sheets.write("Sheet1", "A1", rows)
+        self.google_sheets.write("TopvisorDB", "A1", rows)
         logger.info("Data copied to Google Sheets successfully.")
 
 

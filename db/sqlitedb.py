@@ -15,7 +15,7 @@ class SQLiteDB(DatabaseInterface):
         self.conn = sqlite3.connect(self.db_path)
         cursor = self.conn.cursor()
 
-        # Create a table for project data with a composite primary key
+        # Create a table for project data with a composite primary key and new columns
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS project_data (
                 date TEXT,
@@ -30,6 +30,9 @@ class SQLiteDB(DatabaseInterface):
                 avg_position REAL,
                 visibility REAL,
                 folder_id INTEGER,
+                project_name TEXT,          
+                search_engine TEXT,        
+                region TEXT,               
                 PRIMARY KEY (date, project_id, region_index)
             )
         """)
